@@ -86,7 +86,7 @@ class Manager:
             success_rate = self.success_num / self.finished_num * 100
         time_summary = self.time_tracker.summary
         self.progress.update(self.task_id,
-                             description=f"Success Rate: {success_rate:.2f}% {self.finished_num}/{self.total_jobs} {time_summary}")
+                             description=f"Success Rate: {success_rate:.2f}% Finished: {self.finished_num}/{self.total_jobs} {time_summary}")
 
     def check_task_status_and_assign(self):
         self.monitor_heartbeats()
@@ -137,7 +137,7 @@ class Manager:
 
         time_summary = self.time_tracker.summary
         self.progress.update(self.task_id,
-                             description=f"Success Rate: {success_rate:.2f}% {self.finished_num}/{self.total_jobs} Nodes(Good/Dead): {len(self.available_nodes)}/{len(self.dead_nodes)} {time_summary}")
+                             description=f"Success Rate: {success_rate:.2f}% Finished: {self.finished_num}/{self.total_jobs} Nodes(Good/Dead): {len(self.available_nodes)}/{len(self.dead_nodes)} {time_summary}")
 
     def assign_task_to_node(self, available_nodes):
         assign_new_node_num = 0
