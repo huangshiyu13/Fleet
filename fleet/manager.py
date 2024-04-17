@@ -64,11 +64,7 @@ class Manager:
                 elif status_info['status'] == 'failed':
                     self.failed_num += 1
 
-                success_rate = self.success_num / self.finished_num * 100
-                # self.pbar.update(1)
                 self.progress.update(self.task_id, advance=1)
-                self.progress.update(self.task_id,
-                                     description=f"Success Rate: {success_rate:.2f}% {self.finished_num}/{self.total_jobs}")
 
             else:
                 if status_info['status'] == 'unassigned':
@@ -78,6 +74,13 @@ class Manager:
                     assert status_info['status'] == 'assigned'
                     self.working_task_status[task_name] = status_info
                     self.working_task_status[task_name]["task_status_path"] = str(task_status_path)
+
+        if self.finished_num == 0:
+            success_rate = 0
+        else:
+            success_rate = self.success_num / self.finished_num * 100
+        self.progress.update(self.task_id,
+                             description=f"Success Rate: {success_rate:.2f}% {self.finished_num}/{self.total_jobs}")
 
     def check_task_status_and_assign(self):
         self.monitor_heartbeats()
@@ -119,6 +122,15 @@ class Manager:
             self.assign_task_to_node(available_nodes)
 
         self.check_working_tasks()
+
+        # log status
+        if self.finished_num == 0:
+            success_rate = 0
+        else:
+            success_rate = self.success_num / self.finished_num * 100
+
+        self.progress.update(self.task_id,
+                             description=f"Success Rate: {success_rate:.2f}% {self.finished_num}/{self.total_jobs} Nodes(Good/Dead): {len(self.available_nodes)}/{len(self.dead_nodes)}")
 
     def assign_task_to_node(self, available_nodes):
         assign_new_node_num = 0
@@ -177,12 +189,10 @@ class Manager:
 
                 del self.working_task_status[job_key]
                 self.finished_num += 1
-                success_rate = self.success_num / self.finished_num * 100
-                # self.pbar.update(1)
-                # self.pbar.set_postfix(success_rate=f"{success_rate:.2f}%", node_num=len(nodes))
+
                 self.progress.update(self.task_id, advance=1)
-                self.progress.update(self.task_id,
-                                     description=f"Success Rate: {success_rate:.2f}% {self.finished_num}/{self.total_jobs} Nodes(Good/Dead): {len(self.available_nodes)}/{len(self.dead_nodes)}")
+
+
 
     def run(self):
 
