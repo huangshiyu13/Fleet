@@ -205,7 +205,6 @@ class Manager:
                 TextColumn("[progress.description]{task.description}"),
                 BarColumn(),
                 TextColumn("{task.percentage:>3.0f}%"),
-                TimeRemainingColumn(),
                 console=self.console
         ) as progress:
             self.task_id = progress.add_task("Processing Jobs", total=self.total_jobs)
