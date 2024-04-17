@@ -216,7 +216,7 @@ class Manager:
 
             # self.pbar.close()
 
-    def monitor_heartbeats(self, heartbeat_timeout: int = 30):
+    def monitor_heartbeats(self, heartbeat_timeout: int = 120):
         self.available_nodes = {}
         self.dead_nodes = {}
 

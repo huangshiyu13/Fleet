@@ -34,7 +34,7 @@ class Worker:
         try:
             while True:
                 self.send_heartbeat()
-                time.sleep(1)  # 设定心跳频率，例如每1秒发送一次心跳
+                time.sleep(10)  # 设定心跳频率，例如每10秒发送一次心跳
         except KeyboardInterrupt:
             pass  # 这里可以捕捉 KeyboardInterrupt 异常来优雅地处理进程终止
 
