@@ -7,6 +7,8 @@ from rich.console import Console
 from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
 
 from fleet.utils.file_utils import safe_load_json
+from fleet.utils.time_tracker import TimeTracker
+
 
 class Manager:
     def __init__(self, args, job_list: List[Any], info: Dict = {}):
@@ -41,6 +43,8 @@ class Manager:
         self.dead_nodes = {}
         self.available_nodes = {}
 
+        self.time_tracker = TimeTracker(total_tasks=self.total_jobs)
+
     def initialize_tasks(self):
         self.finished_num = 0
         for idx, job_input in enumerate(self.job_list):
@@ -57,6 +61,7 @@ class Manager:
 
             if status_info['status'] in ["success", "crashed", "failed"]:
                 self.finished_num += 1
+                self.time_tracker.update()
                 if status_info['status'] == 'success':
                     self.success_num += 1
                 elif status_info['status'] == 'crashed':
@@ -79,8 +84,9 @@ class Manager:
             success_rate = 0
         else:
             success_rate = self.success_num / self.finished_num * 100
+        time_summary = self.time_tracker.summary
         self.progress.update(self.task_id,
-                             description=f"Success Rate: {success_rate:.2f}% {self.finished_num}/{self.total_jobs}")
+                             description=f"Success Rate: {success_rate:.2f}% {self.finished_num}/{self.total_jobs} {time_summary}")
 
     def check_task_status_and_assign(self):
         self.monitor_heartbeats()
@@ -110,7 +116,7 @@ class Manager:
             if self.no_available_nodes_num % 100 == 10:
                 self.console.log("No available nodes, sleep 1 seconds...")
 
-            if self.no_available_nodes_num % 100<10:
+            if self.no_available_nodes_num % 100 < 10:
                 time.sleep(1)
             else:
                 time.sleep(10)
@@ -129,8 +135,9 @@ class Manager:
         else:
             success_rate = self.success_num / self.finished_num * 100
 
+        time_summary = self.time_tracker.summary
         self.progress.update(self.task_id,
-                             description=f"Success Rate: {success_rate:.2f}% {self.finished_num}/{self.total_jobs} Nodes(Good/Dead): {len(self.available_nodes)}/{len(self.dead_nodes)}")
+                             description=f"Success Rate: {success_rate:.2f}% {self.finished_num}/{self.total_jobs} Nodes(Good/Dead): {len(self.available_nodes)}/{len(self.dead_nodes)} {time_summary}")
 
     def assign_task_to_node(self, available_nodes):
         assign_new_node_num = 0
@@ -189,10 +196,8 @@ class Manager:
 
                 del self.working_task_status[job_key]
                 self.finished_num += 1
-
+                self.time_tracker.update()
                 self.progress.update(self.task_id, advance=1)
-
-
 
     def run(self):
 
