@@ -21,12 +21,31 @@ import os
 import setuptools
 from setuptools import setup
 
+
 def get_install_requires() -> list:
     return [
         "setuptools>=67.0",
         "rich",
         "tqdm",
     ]
+
+
+def get_extra_requires() -> dict:
+    req = {
+        "test": [
+            "pytest",
+            "pytest-cov",
+            "mypy",
+            "isort",
+            "black",
+            "ruff",
+        ],
+        "dev": ["build", "twine"],
+
+    }
+
+    return req
+
 
 def get_version() -> str:
     # https://packaging.python.org/guides/single-sourcing-package-version/
@@ -35,7 +54,7 @@ def get_version() -> str:
 
 
 setup(
-    name="fleet",
+    name="open-fleet",
     version=get_version(),
     description="distributed task distribution framework",
     long_description=open("README.md", encoding="utf8").read(),
@@ -43,9 +62,8 @@ setup(
     author="Shiyu Huang",
     author_email="huangsy1314@163.com",
     packages=setuptools.find_packages(),
-
     project_urls={
-        "Documentation": None,
+        "Documentation": "https://github.com/huangshiyu13/Fleet",
     },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -59,9 +77,8 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],
-    keywords=(
-        "distributed framework"
-    ),
+    keywords=("distributed framework"),
     python_requires=">=3.8",
     install_requires=get_install_requires(),
+    extras_require=get_extra_requires(),
 )

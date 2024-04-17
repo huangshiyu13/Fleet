@@ -5,5 +5,5 @@ Fleet is a generic distributed task distribution framework based on a distribute
 ## Install
 
 ```bash
-pip install -e .
+pip install open-fleet
 ```

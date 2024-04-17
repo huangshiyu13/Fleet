@@ -1,5 +1,5 @@
 __TITLE__ = "fleet"
-__VERSION__ = "v0.0.1"
+__VERSION__ = "v0.0.2"
 __DESCRIPTION__ = "Fleet is a generic distributed task distribution framework based on a distributed file system."
 __AUTHOR__ = "Shiyu Huang"
 __version__ = __VERSION__
