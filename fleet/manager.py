@@ -4,7 +4,7 @@ import json
 
 from pathlib import Path
 from rich.console import Console
-from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
+from rich.progress import Progress, BarColumn, TextColumn
 
 from fleet.utils.file_utils import safe_load_json
 from fleet.utils.time_tracker import TimeTracker
