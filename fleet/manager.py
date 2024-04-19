@@ -222,12 +222,15 @@ class Manager:
 
             try:
                 while True:
-                    if self.finished_num == self.total_jobs:
+                    if self.finished_num == self.total_jobs or self.working_num+self.finished_num == self.total_jobs:
                         if not self.finished_file.exists():
                             self.finished_file.touch()
+
+                    if self.finished_num == self.total_jobs:
                         break
 
                     self.check_task_status_and_assign()
+
             finally:
                 self.stop_job_assignment()
 

@@ -12,6 +12,7 @@ def loop_assignment(available_dir, nodes_dir, working_dir, unassigned_task_statu
                                                                          unassigned_task_status, console)
         if len(working_task_status) == 0:
             time.sleep(0.1)
+    console.log("All tasks are assigned.")
 
 
 def process_assignment(available_dir, nodes_dir, working_dir: Path, unassigned_task_status, console):
