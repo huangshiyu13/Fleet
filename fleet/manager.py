@@ -45,6 +45,8 @@ class Manager:
 
         self.time_tracker = TimeTracker(total_tasks=self.total_jobs)
 
+        self.first_assigned = True
+
     def initialize_tasks(self):
         self.finished_num = 0
         for idx, job_input in enumerate(self.job_list):
@@ -84,9 +86,12 @@ class Manager:
             success_rate = 0
         else:
             success_rate = self.success_num / self.finished_num * 100
-        time_summary = self.time_tracker.summary
+
         self.progress.update(self.task_id,
-                             description=f"Success Rate: {success_rate:.2f}% Finished: {self.finished_num}/{self.total_jobs} {time_summary}")
+                             description=f"Success Rate: {success_rate:.2f}% Finished: {self.finished_num}/{self.total_jobs}")
+
+        if self.finished_num > 0:
+            self.first_assigned = False
 
     def check_task_status_and_assign(self):
         self.monitor_heartbeats()
@@ -160,6 +165,10 @@ class Manager:
                 node_file.write_text(json.dumps(node_info))
 
                 self.console.log(f"Assign task {job_key} to node {chosen_node}")
+                if self.first_assigned:
+                    self.time_tracker.reset()
+                    self.first_assigned = False
+
                 assign_new_node_num += 1
                 # 移除未完成任务
                 del self.unassigned_task_status[job_key]

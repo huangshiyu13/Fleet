@@ -11,7 +11,7 @@ def add_one(x, info):
 
 
 def main():
-    timeout = None
+    timeout = 1
     args_input = f"--base_dir {base_dir}"
     if timeout is not None:
         args_input += f" --timeout {timeout}"

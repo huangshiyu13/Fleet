@@ -16,6 +16,9 @@ class TimeTracker:
     def __init__(self, total_tasks: int):
         assert total_tasks > 0, "task number must larger than zero!"
         self.total_tasks = total_tasks
+        self.reset()
+
+    def reset(self):
         self.finished_tasks = 0
         self.start_time = time.time()
 
