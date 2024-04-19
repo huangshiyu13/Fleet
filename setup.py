@@ -41,7 +41,6 @@ def get_extra_requires() -> dict:
             "ruff",
         ],
         "dev": ["build", "twine"],
-
     }
 
     return req

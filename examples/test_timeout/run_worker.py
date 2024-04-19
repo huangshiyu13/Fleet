@@ -1,8 +1,9 @@
 import time
-from fleet.worker import Worker
-from fleet.config.config import get_args
 
 from run_manager import base_dir
+
+from fleet.config.config import get_args
+from fleet.worker import Worker
 
 
 def add_one(x, info):
@@ -20,5 +21,5 @@ def main():
     worker.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

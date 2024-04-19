@@ -1,10 +1,11 @@
-from pathlib import Path
 import shutil
+from pathlib import Path
 
-from fleet.manager import Manager
 from fleet.config.config import get_args
+from fleet.manager import Manager
 
 base_dir = "./share_dir"
+
 
 def main():
     if Path(base_dir).exists():
@@ -15,5 +16,6 @@ def main():
     manager = Manager(args=args, job_list=job_list)
     manager.run()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
