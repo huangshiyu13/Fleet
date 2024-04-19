@@ -7,6 +7,7 @@ Fleet is a generic distributed task distribution framework based on a distribute
 - Supports dynamic scaling
 - Supports worker node heartbeat
 - Supports manager node restart
+- Supports set timeout for each task
 - Pure Python implementation
 
 ## Install
@@ -16,6 +17,8 @@ pip install open-fleet
 ```
 
 ## Usage
+
+See more examples in [./examples](./examples).
 
 ```python
 # run_manager.py
