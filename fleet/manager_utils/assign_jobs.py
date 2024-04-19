@@ -52,9 +52,10 @@ def do_assign_job(process_input):
     if available_file.exists():
         available_file.unlink()
     console.log(f"Assign task {job_key} to node {chosen_node}")
+
     working_file = working_dir / job_key
     if not working_file.exists():
-        console.log(f"Writing {str(working_file)}")
+        # console.log(f"Writing {str(working_file)}")
         working_file.write_text(json.dumps(status_info))
 
 
