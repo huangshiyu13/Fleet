@@ -10,12 +10,15 @@ from pathlib import Path
 
 from fleet.utils.file_utils import safe_load_json
 
+
 def run_job(job_func, job_input, info, output_queue):
     try:
         result = job_func(job_input, info)
         output_queue.put(result)
     except Exception as e:
-        output_queue.put({"error": str(e), "status": "crashed"})
+        error_message = traceback.format_exc()
+        output_queue.put({"error": error_message, "status": "crashed"})
+
 
 class Worker:
     def __init__(self, args, job_func: Callable, info: Dict = {}):
@@ -98,15 +101,16 @@ class Worker:
 
         print(f"Node {self.node_id} registered")
 
-    def check_and_process_tasks(self):
+    def process_job(self):
         find_job = False
-        for task_name in list(self.unassigned_task_status.keys()):
+        node_info = safe_load_json(self.node_status_path)
+        if node_info and node_info['status'] == 'busy':
+            task_name = node_info['task']
             status_info = deepcopy(self.unassigned_task_status[task_name])
-            task_status_file = Path(status_info["task_status_path"])
-
+            task_status_file = Path(node_info["task_status_path"])
             status_info_in_file = safe_load_json(task_status_file)
             if status_info_in_file is None:
-                continue
+                return find_job
 
             if status_info_in_file['status'] != 'unassigned':
                 del self.unassigned_task_status[task_name]
@@ -143,8 +147,11 @@ class Worker:
                     "status": "idle"
                 }
                 self.node_status_path.write_text(json.dumps(node_info))
-                break
+                return find_job
+        return find_job
 
+    def check_and_process_tasks(self):
+        find_job = self.process_job()
         if not find_job:
             if self.not_find_job_num % 100 == 0:
                 print("No task assigned...")
