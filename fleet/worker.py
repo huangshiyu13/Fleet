@@ -2,14 +2,12 @@ from typing import Callable, Dict
 import time
 import uuid
 import json
-from copy import deepcopy
 from multiprocessing import Process, Queue
 import traceback
 
 from pathlib import Path
 
 from fleet.utils.file_utils import safe_load_json
-
 
 def run_job(job_func, job_input, info, output_queue):
     try:
@@ -29,6 +27,9 @@ class Worker:
         self.nodes_dir = self.base_dir / 'nodes'
         self.status_dir = self.base_dir / 'status'
         self.heart_dir = self.base_dir / 'heart'
+        self.finished_file = self.base_dir / 'finished'
+        self.available_dir = self.base_dir / 'available'
+        self.available_file = self.available_dir / self.node_id
 
         self.node_status_path = self.nodes_dir / f'{self.node_id}.status'
         self.node_heart_status_path = self.heart_dir / f'{self.node_id}.heart'
@@ -36,10 +37,14 @@ class Worker:
         self.job_func = job_func
         self.info = info
 
-        self.unassigned_task_status = {}
+        # self.unassigned_task_status = {}
         self.not_find_job_num = 0
 
         self.heartbeat_process = None  # 添加一个属性来保存心跳进程的引用
+
+    def create_available_file(self):
+        if not self.available_file.exists():
+            self.available_file.touch()
 
     def heartbeat_daemon(self):
         """这个函数将作为独立的进程运行，负责发送心跳信号。"""
@@ -87,75 +92,77 @@ class Worker:
         self.send_heartbeat(status='dead')
 
     def register_node(self):
-        for task_status_file in self.status_dir.iterdir():
-            status_info = safe_load_json(task_status_file)
-            if status_info and status_info["status"] == "unassigned":
-                self.unassigned_task_status[task_status_file.stem] = status_info
-        print("Read task status done")
+        self.start_heartbeat()  # 在任务开始时启动心跳进程
+
+        # for task_status_file in self.status_dir.iterdir():
+        # status_info = safe_load_json(task_status_file)
+        # if status_info and status_info["status"] == "unassigned":
+        #     self.unassigned_task_status[task_status_file.stem] = status_info
+        # print("Read task status done")
         node_info = {
             "status": "idle"
         }
         # self.node_status_path.write_text('idle')
         self.node_status_path.write_text(json.dumps(node_info))
-        self.start_heartbeat()  # 在任务开始时启动心跳进程
-
+        self.create_available_file()
         print(f"Node {self.node_id} registered")
 
     def process_job(self):
         find_job = False
         node_info = safe_load_json(self.node_status_path)
         if node_info and node_info['status'] == 'busy':
-            task_name = node_info['task']
-            status_info = deepcopy(self.unassigned_task_status[task_name])
+            task_status_path = node_info['task_status_path']
+            status_info = safe_load_json(Path(task_status_path))
             task_status_file = Path(node_info["task_status_path"])
-            status_info_in_file = safe_load_json(task_status_file)
-            if status_info_in_file is None:
-                return find_job
 
-            if status_info_in_file['status'] != 'unassigned':
-                del self.unassigned_task_status[task_name]
-            if status_info_in_file.get('assigned_to') == self.node_id:
-                job_input = status_info.get('input')
-                print(f"Processing task: {job_input}")
-                find_job = True
+            job_input = status_info.get('input')
+            print(f"Processing task: {job_input}")
+            find_job = True
 
-                if self.timeout is None:
-                    result = self.job_func(job_input, self.info)
+            if self.timeout is None:
+                result = self.job_func(job_input, self.info)
+            else:
+                output_queue = Queue()
+                job_process = Process(target=run_job, args=(self.job_func, job_input, self.info, output_queue))
+                job_process.start()
+                job_process.join(timeout=self.timeout)
+                if job_process.is_alive():
+                    job_process.terminate()
+                    job_process.join()
+                    result = {"error": "job timeout", "status": "crashed"}
                 else:
-                    output_queue = Queue()
-                    job_process = Process(target=run_job, args=(self.job_func, job_input, self.info, output_queue))
-                    job_process.start()
-                    job_process.join(timeout=self.timeout)
-                    if job_process.is_alive():
-                        job_process.terminate()
-                        job_process.join()
-                        result = {"error": "job timeout", "status": "crashed"}
-                    else:
-                        result = output_queue.get()
+                    result = output_queue.get()
 
-                print(f"Task {job_input} Done!")
-                if 'error' in result:
-                    status_info['error'] = result['error']
+            print(f"Task {job_input} Done!")
+            if 'error' in result:
+                status_info['error'] = result['error']
 
-                # 更新任务状态为完成
-                status_info['status'] = result['status']
+            # 更新任务状态为完成
+            status_info['status'] = result['status']
 
-                task_status_file.write_text(json.dumps(status_info))
+            task_status_file.write_text(json.dumps(status_info))
 
-                # 标记节点为空闲
-                node_info = {
-                    "status": "idle"
-                }
-                self.node_status_path.write_text(json.dumps(node_info))
-                return find_job
+            # 标记节点为空闲
+            node_info = {
+                "status": "idle"
+            }
+            self.node_status_path.write_text(json.dumps(node_info))
+            self.create_available_file()
+            return find_job
         return find_job
 
     def check_and_process_tasks(self):
         find_job = self.process_job()
+
         if not find_job:
-            if self.not_find_job_num % 100 == 0:
+            if self.not_find_job_num % 100 == 20:
                 print("No task assigned...")
-            time.sleep(0.5)
+
+            if self.not_find_job_num < 20:
+                time.sleep(0.1)
+            else:
+                time.sleep(0.5)
+
             self.not_find_job_num += 1
         else:
             self.not_find_job_num = 0
@@ -166,7 +173,7 @@ class Worker:
         try:
             while True:
                 self.check_and_process_tasks()
-                if len(self.unassigned_task_status) == 0:
+                if self.finished_file.exists():
                     break
                 if not self.check_heart():
                     break

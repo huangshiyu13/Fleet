@@ -1,9 +1,11 @@
+import time
 from fleet.worker import Worker
 from fleet.config.config import get_args
 
 from run_manager import base_dir
 
 def add_one(x, info):
+    # time.sleep(5)
     return {"status": "success", "result": x + 1}
 
 def main():
