@@ -7,6 +7,7 @@ def get_args(input: Optional[Union[str, List[str]]] = None):
     parser.add_argument("--base_dir", default=None, type=str,
                         help="directory to store the status of the nodes and tasks")
     parser.add_argument("--node_id", default=None, type=str, help="node id for the worker")
+    parser.add_argument("--timeout",default=None, type=int, help="timeout for each task")
     if input is not None:
         if isinstance(input, str):
             input = [element for element in input.split(" ") if element]

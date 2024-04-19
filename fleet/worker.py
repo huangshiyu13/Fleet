@@ -3,15 +3,24 @@ import time
 import uuid
 import json
 from copy import deepcopy
-from multiprocessing import Process
+from multiprocessing import Process, Queue
+import traceback
 
 from pathlib import Path
 
 from fleet.utils.file_utils import safe_load_json
 
+def run_job(job_func, job_input, info, output_queue):
+    try:
+        result = job_func(job_input, info)
+        output_queue.put(result)
+    except Exception as e:
+        output_queue.put({"error": str(e), "status": "crashed"})
+
 class Worker:
     def __init__(self, args, job_func: Callable, info: Dict = {}):
         self.base_dir = Path(args.base_dir)
+        self.timeout = args.timeout
         unique_id = str(uuid.uuid4())
         self.node_id = f"{args.node_id}_{unique_id}" if args.node_id else unique_id
         self.nodes_dir = self.base_dir / 'nodes'
@@ -102,13 +111,24 @@ class Worker:
             if status_info_in_file['status'] != 'unassigned':
                 del self.unassigned_task_status[task_name]
             if status_info_in_file.get('assigned_to') == self.node_id:
-                # 标记节点为忙碌
-                # self.node_status_path.write_text('busy')
-
                 job_input = status_info.get('input')
                 print(f"Processing task: {job_input}")
                 find_job = True
-                result = self.job_func(job_input, self.info)
+
+                if self.timeout is None:
+                    result = self.job_func(job_input, self.info)
+                else:
+                    output_queue = Queue()
+                    job_process = Process(target=run_job, args=(self.job_func, job_input, self.info, output_queue))
+                    job_process.start()
+                    job_process.join(timeout=self.timeout)
+                    if job_process.is_alive():
+                        job_process.terminate()
+                        job_process.join()
+                        result = {"error": "job timeout", "status": "crashed"}
+                    else:
+                        result = output_queue.get()
+
                 print(f"Task {job_input} Done!")
                 if 'error' in result:
                     status_info['error'] = result['error']
@@ -145,6 +165,8 @@ class Worker:
                     break
 
         except Exception as e:
-            print(f"Error: {e}")
+            # traceback.print_exc()  # 打印异常信息和堆栈跟踪
+            error_message = traceback.format_exc()
+            print(error_message)
         finally:
             self.stop_heartbeat()  # 在任何结束时确保心跳进程被终止

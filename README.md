@@ -42,7 +42,7 @@ from fleet.config.config import get_args
 from run_manager import base_dir
 
 def add_one(x, info):
-    return x+1
+    return {"status": "success", "result": x + 1}
 
 def main():
     args = get_args(f"--base_dir {base_dir}")
