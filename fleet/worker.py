@@ -16,6 +16,7 @@ def run_job(job_func, job_input, info, output_queue):
         output_queue.put(result)
     except Exception as e:
         error_message = traceback.format_exc()
+        print(error_message)
         output_queue.put({"error": error_message, "status": "crashed"})
 
 
@@ -46,11 +47,15 @@ class Worker:
 
         if self.wait_manager:
             wait_time = 0
-            while len(self.check_dirs()) > 0:
+            missing_dirs = self.check_dirs()
+            while len(missing_dirs) > 0:
                 if wait_time % 30 == 0:
                     print(f"Waiting for manager to create dirs...")
+                    for missing_dir in missing_dirs:
+                        print(f"Missing dir: {missing_dir}")
                 time.sleep(1)
                 wait_time += 1
+                missing_dirs = self.check_dirs()
 
         else:
             missing_dirs = self.check_dirs()
@@ -195,8 +200,15 @@ class Worker:
             while True:
                 self.check_and_process_tasks()
                 if self.finished_file.exists():
+
+                    node_info = safe_load_json(self.node_status_path)
+                    if node_info and node_info['status'] == 'busy':
+                        continue
+
+                    print("Finished file exists, exit!")
                     break
                 if not self.check_heart():
+                    print("Heart is dead, exit!")
                     break
 
         except Exception as e:

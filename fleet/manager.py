@@ -2,6 +2,7 @@ from typing import List, Any, Dict
 import time
 import json
 from multiprocessing import Process
+from datetime import datetime
 
 from pathlib import Path
 from rich.console import Console
@@ -131,7 +132,6 @@ class Manager:
                     node_info['status'] = 'dead'
                     node_file.write_text(json.dumps(node_info))
 
-
     def log_status(self):
         current_time = time.time()
         if self.previous_log_time is None or current_time - self.previous_log_time > 1 or self.finished_num == self.total_jobs:
@@ -145,8 +145,8 @@ class Manager:
             success_rate = self.success_num / self.finished_num * 100
         time_summary = self.time_tracker.summary
 
-
-        self.progress.update(self.task_id, description=f"Success Rate: {success_rate:.2f}% Finished/Working: {self.finished_num}/{self.working_num}/{self.total_jobs} Nodes(Good/Dead): {len(self.available_nodes)}/{len(self.dead_nodes)} {time_summary}")
+        self.progress.update(self.task_id,
+                             description=f"Success Rate: {success_rate:.2f}% Finished/Working: {self.finished_num}/{self.working_num}/{self.total_jobs} Nodes(Good/Dead): {len(self.available_nodes)}/{len(self.dead_nodes)} {time_summary}")
 
     def check_task_status_and_assign(self):
         self.monitor_heartbeats()
@@ -193,7 +193,6 @@ class Manager:
                 self.time_tracker.update()
                 self.progress.update(self.task_id, advance=1)
 
-
     def loop_assignment(self):
         loop_assignment(self.available_dir, self.nodes_dir, self.working_dir, self.unassigned_task_status, self.console)
 
@@ -222,7 +221,7 @@ class Manager:
 
             try:
                 while True:
-                    if self.finished_num == self.total_jobs or self.working_num+self.finished_num == self.total_jobs:
+                    if self.finished_num == self.total_jobs or self.working_num + self.finished_num == self.total_jobs:
                         if not self.finished_file.exists():
                             self.finished_file.touch()
 
@@ -244,11 +243,22 @@ class Manager:
                 continue
 
             node_info = safe_load_json(node_file)
+
             if node_info and node_info['status'] == "available" and current_time - node_info.get("last_heartbeat",
                                                                                                  0) <= heartbeat_timeout:
                 self.available_nodes[node_file.stem] = node_info
+
             else:
+                if node_info is None:
+                    dead_reason = f"can not load node info from {str(node_file)}"
+                else:
+                    if node_info['status'] == 'dead':
+                        dead_reason = f"worker sends dead"
+                    else:
+                        dead_reason = f"no heartbeat, last heartbeat: {datetime.fromtimestamp(node_info.get('last_heartbeat', 0)).strftime('%Y-%m-%d %H:%M:%S')}"
                 node_info['status'] = 'dead'
+                node_info['dead_reason'] = dead_reason
+
                 node_file.write_text(json.dumps(node_info))
                 self.dead_nodes[node_file.stem] = node_info
                 new_dead_nodes[node_file.stem] = node_info
