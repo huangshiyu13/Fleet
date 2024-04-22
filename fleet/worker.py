@@ -1,4 +1,4 @@
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 import time
 import uuid
 import json
@@ -8,6 +8,7 @@ import traceback
 from pathlib import Path
 
 from fleet.utils.file_utils import safe_load_json
+
 
 def run_job(job_func, job_input, info, output_queue):
     try:
@@ -22,6 +23,7 @@ class Worker:
     def __init__(self, args, job_func: Callable, info: Dict = {}):
         self.base_dir = Path(args.base_dir)
         self.timeout = args.timeout
+        self.wait_manager = args.wait_manager
         unique_id = str(uuid.uuid4())
         self.node_id = f"{args.node_id}_{unique_id}" if args.node_id else unique_id
         self.nodes_dir = self.base_dir / 'nodes'
@@ -41,6 +43,25 @@ class Worker:
         self.not_find_job_num = 0
 
         self.heartbeat_process = None  # 添加一个属性来保存心跳进程的引用
+
+        if self.wait_manager:
+            wait_time = 0
+            while len(self.check_dirs()) > 0:
+                if wait_time % 30 == 0:
+                    print(f"Waiting for manager to create dirs...")
+                time.sleep(1)
+                wait_time += 1
+
+        else:
+            missing_dirs = self.check_dirs()
+            assert len(missing_dirs) == 0, f"Missing dirs: {missing_dirs}"
+
+    def check_dirs(self) -> List[str]:
+        missing_dirs = []
+        for dir in [self.nodes_dir, self.status_dir, self.heart_dir, self.available_dir]:
+            if not dir.exists():
+                missing_dirs.append(str(dir))
+        return missing_dirs
 
     def create_available_file(self):
         if not self.available_file.exists():

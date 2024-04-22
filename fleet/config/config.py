@@ -8,6 +8,7 @@ def get_args(input: Optional[Union[str, List[str]]] = None):
                         help="directory to store the status of the nodes and jobs")
     parser.add_argument("--node_id", default=None, type=str, help="node id for the worker")
     parser.add_argument("--timeout",default=None, type=int, help="timeout for each job")
+    parser.add_argument("--wait_manager", default=False, action="store_true", help="whether to wait manager")
     if input is not None:
         if isinstance(input, str):
             input = [element for element in input.split(" ") if element]
