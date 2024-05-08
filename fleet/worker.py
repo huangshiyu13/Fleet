@@ -25,6 +25,8 @@ class Worker:
         self.base_dir = Path(args.base_dir)
         self.timeout = args.timeout
         self.wait_manager = args.wait_manager
+        self.max_job = args.max_job
+        self.max_work_time = args.max_work_time
         unique_id = str(uuid.uuid4())
         self.node_id = f"{args.node_id}_{unique_id}" if args.node_id else unique_id
         self.nodes_dir = self.base_dir / 'nodes'
@@ -60,6 +62,9 @@ class Worker:
         else:
             missing_dirs = self.check_dirs()
             assert len(missing_dirs) == 0, f"Missing dirs: {missing_dirs}"
+
+        self.finished_job_num = 0
+        self.worker_start_time = time.time()
 
     def check_dirs(self) -> List[str]:
         missing_dirs = []
@@ -160,6 +165,7 @@ class Worker:
                     result = output_queue.get()
 
             print(f"Task {job_input} Done!")
+            self.finished_job_num += 1
             if 'error' in result:
                 status_info['error'] = result['error']
 
@@ -173,7 +179,9 @@ class Worker:
                 "status": "idle"
             }
             self.node_status_path.write_text(json.dumps(node_info))
-            self.create_available_file()
+            worker_status = self.check_worker_status()
+            if worker_status == "running":
+                self.create_available_file()
             return find_job
         return find_job
 
@@ -193,22 +201,33 @@ class Worker:
         else:
             self.not_find_job_num = 0
 
+    def check_worker_status(self)->str:
+        if self.max_job is not None and self.finished_job_num >= self.max_job:
+            return "max_job_reached"
+        if self.max_work_time is not None and time.time() - self.worker_start_time > self.max_work_time:
+            return "max_work_time_reached"
+        if self.finished_file.exists():
+            return "finished_file_exists"
+        if not self.check_heart():
+            return "heart_dead"
+        return "running"
+
     def run(self):
         self.register_node()
 
         try:
             while True:
                 self.check_and_process_tasks()
-                if self.finished_file.exists():
-
+                worker_status = self.check_worker_status()
+                if worker_status == "finished_file_exists":
                     node_info = safe_load_json(self.node_status_path)
                     if node_info and node_info['status'] == 'busy':
                         continue
 
                     print("Finished file exists, exit!")
                     break
-                if not self.check_heart():
-                    print("Heart is dead, exit!")
+                if worker_status != "running":
+                    print(f"Worker finish reason: {worker_status}")
                     break
 
         except Exception as e:
