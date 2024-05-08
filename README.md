@@ -8,6 +8,7 @@ Fleet is a generic distributed task distribution framework based on a distribute
 - Supports worker node heartbeat
 - Supports manager node restart
 - Supports set timeout for each task
+- Supports set max_job and max_work_time for worker
 - Pure Python implementation
 
 ## Install
