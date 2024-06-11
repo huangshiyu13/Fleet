@@ -1,5 +1,5 @@
 SHELL=/bin/bash
-PROJECT_NAME=openrl
+PROJECT_NAME=fleet
 PROJECT_PATH=${PROJECT_NAME}/
 PYTHON_FILES = $(shell find setup.py ${PROJECT_NAME} tests examples -type f -name "*.py")
 
