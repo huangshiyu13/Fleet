@@ -251,6 +251,7 @@ class Manager:
             else:
                 if node_info is None:
                     dead_reason = f"can not load node info from {str(node_file)}"
+                    node_info = {}
                 else:
                     if node_info['status'] == 'dead':
                         dead_reason = f"worker sends dead"
