@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 
 
-def safe_load_json(file_path: Path, max_retry_times: int = 60):
+def safe_load_json(file_path: Path, max_retry_times: int = 20):
     retry_time = 0
     while True:
         try:
