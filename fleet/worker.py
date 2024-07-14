@@ -18,6 +18,9 @@ def run_job(job_func, job_input, info, output_queue):
         error_message = traceback.format_exc()
         print(error_message)
         output_queue.put({"error": error_message, "status": "crashed"})
+    finally:
+        # 强制终止当前进程和所有子线程/子进程
+        os._exit(0)
 
 
 class Worker:
