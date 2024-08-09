@@ -1,5 +1,6 @@
 from typing import Callable, Dict, List
 import os
+import sys
 import time
 import uuid
 import json
@@ -21,7 +22,8 @@ def run_job(job_func, job_input, info, output_queue):
         output_queue.put({"error": error_message, "status": "crashed"})
     finally:
         # 强制终止当前进程和所有子线程/子进程
-        os._exit(0)
+        # os._exit(0)
+        sys.exit(0)
 
 
 class Worker:
@@ -205,7 +207,7 @@ class Worker:
         else:
             self.not_find_job_num = 0
 
-    def check_worker_status(self)->str:
+    def check_worker_status(self) -> str:
         if self.max_job is not None and self.finished_job_num >= self.max_job:
             return "max_job_reached"
         if self.max_work_time is not None and time.time() - self.worker_start_time > self.max_work_time:
